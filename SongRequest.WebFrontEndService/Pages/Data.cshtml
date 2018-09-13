@@ -1,0 +1,89 @@
+﻿@page
+@model SongRequest.WebFrontEndService.Pages.DataModel
+@{
+  ViewData["Title"] = "Data";
+}
+
+<div class="data-refresh">
+  @*<span id="refresh-icon" class="oi oi-reload" title="reload" aria-hidden="true" style="display: none;"></span>*@
+  <button id="refresh" type="button" class="btn btn-sm btn-outline-dark" asp-page-handler="refresh">Refresh All Data</button>
+</div>
+
+
+@if (Model.Feedback != null)
+{
+  <div class="@Model.Feedback.GetDisplayClass()" role="alert">
+    @Model.Feedback.Message
+  </div>
+}
+
+<h1 class="cover-heading">Most recently requested songs</h1>
+
+<table id="latest" class="table table-sm table-responsive-sm">
+  <thead class="thead-light">
+    <tr>
+      <th scope="col">Requested Date</th>
+      <th scope="col">Artist</th>
+      <th scope="col">Song Title</th>
+      <th scope="col">Genre</th>
+    </tr>
+  </thead>
+  <tbody>
+    @foreach (var request in Model.SongRequests)
+    {
+      <tr>
+        <td>@request.RequestDate.ToLocalTime().ToString("MM/dd/yyyy hh:mm:ss tt ")</td>
+        <td>@request.Artist</td>
+        <td>@request.Title</td>
+        <td>@request.Genre</td>
+      </tr>
+    }
+  </tbody>
+</table>
+
+<h1 class="cover-heading">Top ten most requested songs</h1>
+
+<table id="top" class="table table-sm table-responsive-sm">
+  <thead class="thead-light">
+    <tr>
+      <th scope="col">Artist</th>
+      <th scope="col">Song Title</th>
+      <th scope="col">Number of Requests</th>
+    </tr>
+  </thead>
+  <tbody>
+    @foreach (var song in Model.RequestedSongs)
+    {
+      <tr>
+        <td>@song.Artist</td>
+        <td>@song.Title</td>
+        <td>@song.NumRequests</td>
+      </tr>
+    }
+  </tbody>
+</table>
+
+
+@section Scripts {
+  <script>
+    $(document).ready(function () {
+      setInterval(function () {
+        $.ajax({
+          url: `${window.location.protocol}//${window.location.host}/Data?handler=refresh`,
+          type: "POST",
+          beforeSend: function (request) {
+            /*$("#refresh-icon").css("display", "inline-block");*/
+            $("#refresh").prop("disabled", true);
+            request.setRequestHeader("RequestVerificationToken", "@HttpContext.GetAntiforgeryToken()");
+          }
+        })
+          .done(function (response) {
+            let $response = $($.parseHTML(response));
+            $("#latest").html($response.find("#latest").html());
+            $("#top").html($response.find("#top").html());
+          })
+          .always(function () { $("#refresh").prop("disabled", false); /*$("#refresh-icon").css("display", "none");*/ });
+      }, 10000);
+    });
+  </script>
+}
